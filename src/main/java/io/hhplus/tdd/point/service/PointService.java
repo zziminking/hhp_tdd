@@ -6,6 +6,8 @@ import io.hhplus.tdd.point.UserPoint;
 import io.hhplus.tdd.point.domain.repository.PointHistoryRepository;
 import io.hhplus.tdd.point.domain.repository.UserPointRepository;
 import java.util.List;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.locks.ReentrantLock;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -15,6 +17,7 @@ public class PointService {
 
     private final PointHistoryRepository pointHistoryRepository;
     private final UserPointRepository userPointRepository;
+    private final ConcurrentHashMap<Long, ReentrantLock> userLock = new ConcurrentHashMap<>();
 
     /**
      * 포인트 조회
@@ -51,29 +54,43 @@ public class PointService {
             throw new IllegalArgumentException("포인트 충전은 10000원 까지 가능합니다.");
         }
 
-        UserPoint currentPoint = userPointRepository.selectById(id);
+        ReentrantLock reentrantLock = userLock.computeIfAbsent(id, k -> new ReentrantLock());
+        reentrantLock.lock();
 
-        long totalPoint = currentPoint.calculateChargePoint(amount);
+        try {
+            UserPoint currentPoint = userPointRepository.selectById(id);
 
-        // 히스토리 기록
-        pointHistoryRepository.insert(id, amount, TransactionType.CHARGE, System.currentTimeMillis());
+            long totalPoint = currentPoint.calculateChargePoint(amount);
 
-        // 포인트 업데이트
-        return userPointRepository.insertOrUpdate(id, totalPoint);
+            // 히스토리 기록
+            pointHistoryRepository.insert(id, amount, TransactionType.CHARGE, System.currentTimeMillis());
+
+            // 포인트 업데이트
+            return userPointRepository.insertOrUpdate(id, totalPoint);
+        } finally {
+            reentrantLock.unlock();
+        }
     }
 
     /**
      * 포인트 사용
      */
     public UserPoint useUserPoint(long id, long amount) {
-        UserPoint currentPoint = userPointRepository.selectById(id);
+        ReentrantLock reentrantLock = userLock.computeIfAbsent(id, k -> new ReentrantLock());
+        reentrantLock.lock();
 
-        long usePoint = currentPoint.calculateUsePoint(amount);
+        try {
+            UserPoint currentPoint = userPointRepository.selectById(id);
 
-        // 히스토리 기록
-        pointHistoryRepository.insert(id, amount, TransactionType.USE, System.currentTimeMillis());
+            long usePoint = currentPoint.calculateUsePoint(amount);
 
-        // 포인트 업데이트
-        return userPointRepository.insertOrUpdate(id, usePoint);
+            // 히스토리 기록
+            pointHistoryRepository.insert(id, amount, TransactionType.USE, System.currentTimeMillis());
+
+            // 포인트 업데이트
+            return userPointRepository.insertOrUpdate(id, usePoint);
+        } finally {
+            reentrantLock.unlock();
+        }
     }
 }
