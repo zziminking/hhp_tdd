@@ -22,7 +22,7 @@ public class PointConcurrencyTest {
     private UserPointRepository userPointRepository;
 
     @Test
-    @DisplayName("같은 사용자에 대한 동시 충전 동시성 테스트")
+    @DisplayName("같은 사용자에 대한 포인트충전 동시성 테스트")
     void charge_concurrent_test_same_user() throws InterruptedException {
         // Given
         long userId = 1L;
@@ -50,6 +50,43 @@ public class PointConcurrencyTest {
         UserPoint userPoint = userPointRepository.selectById(userId);
         assertThat(userPoint.point()).isEqualTo(100_000);
     }
+
+    @Test
+    @DisplayName("같은 사용자에 대한 포인트사용 동시성 테스트")
+    void use_concurrent_test_same_user() throws InterruptedException {
+        // Given
+        long userId = 1L;
+        long useAmount = 500;
+        int threadCount = 100;
+
+        // 초기 포인트 충전 (사용할 금액의 총합)
+        for (int i = 0; i < 5; i++) {
+            pointservice.chargeUserPoint(userId, 10000);
+        }
+
+
+        ExecutorService executorService = Executors.newFixedThreadPool(32);
+        CountDownLatch latch = new CountDownLatch(threadCount);
+
+        // When: 100개의 스레드가 동시에 500 포인트씩 사용
+        for (int i = 0; i < threadCount; i++) {
+            executorService.submit(() -> {
+                try {
+                    pointservice.useUserPoint(userId, useAmount);
+                } finally {
+                    latch.countDown();
+                }
+            });
+        }
+
+        latch.await();
+        executorService.shutdown();
+
+        // Then: 50,000 - (100 * 500) = 0
+        UserPoint userPoint = userPointRepository.selectById(userId);
+        assertThat(userPoint.point()).isEqualTo(0);
+    }
+
 
     @Test
     @DisplayName("여러 사용자에 대한 충전 동시성 테스트")
