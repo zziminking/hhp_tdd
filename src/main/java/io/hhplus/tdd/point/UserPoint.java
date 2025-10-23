@@ -32,4 +32,20 @@ public record UserPoint(
 
         return newPoint;
     }
+
+    /**
+     * 사용 포인트 계산
+     */
+    public long calculateUsePoint(long amount) {
+        if (amount <= 0) {
+            throw new IllegalArgumentException("포인트 사용 금액은 0보다 커야 합니다.");
+        }
+
+        if (amount > this.point) {
+            throw new IllegalArgumentException(String.format("포인트 사용 금액은 현재 포인트를 초과할 수 없습니다. 포인트: {}", this.point));
+        }
+
+        return this.point - amount;
+    }
+
 }

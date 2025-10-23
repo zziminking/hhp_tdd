@@ -46,7 +46,10 @@ public class PointService {
      * 포인트 충전
      */
     public UserPoint chargeUserPoint(long id, long amount) {
-        validateChargePolicy(amount);
+        // 정책: 포인트 충전은 한번에 10000원까지 가능
+        if (amount > 10000) {
+            throw new IllegalArgumentException("포인트 충전은 10000원 까지 가능합니다.");
+        }
 
         UserPoint currentPoint = userPointRepository.selectById(id);
 
@@ -59,10 +62,18 @@ public class PointService {
         return userPointRepository.insertOrUpdate(id, totalPoint);
     }
 
-    private void validateChargePolicy(long amount) {
-        // 정책: 포인트 충전은 한번에 10000원까지 가능
-        if (amount > 10000) {
-            throw new IllegalArgumentException("포인트 충전은 10000원 까지 가능합니다.");
-        }
+    /**
+     * 포인트 사용
+     */
+    public UserPoint useUserPoint(long id, long amount) {
+        UserPoint currentPoint = userPointRepository.selectById(id);
+
+        long usePoint = currentPoint.calculateUsePoint(amount);
+
+        // 히스토리 기록
+        pointHistoryRepository.insert(id, amount, TransactionType.USE, System.currentTimeMillis());
+
+        // 포인트 업데이트
+        return userPointRepository.insertOrUpdate(id, usePoint);
     }
 }
