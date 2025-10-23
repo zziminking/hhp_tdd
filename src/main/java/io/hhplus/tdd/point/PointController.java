@@ -37,7 +37,7 @@ public class PointController {
      */
     @PatchMapping("{id}/charge")
     public UserPoint charge(@PathVariable long id, @RequestBody long amount) {
-        return new UserPoint(0, 0, 0);
+        return pointService.chargeUserPoint(id, amount);
     }
 
     /**

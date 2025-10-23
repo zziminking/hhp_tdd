@@ -1,6 +1,7 @@
 package io.hhplus.tdd.point.service;
 
 import io.hhplus.tdd.point.PointHistory;
+import io.hhplus.tdd.point.TransactionType;
 import io.hhplus.tdd.point.UserPoint;
 import io.hhplus.tdd.point.domain.repository.PointHistoryRepository;
 import io.hhplus.tdd.point.domain.repository.UserPointRepository;
@@ -15,6 +16,9 @@ public class PointService {
     private final PointHistoryRepository pointHistoryRepository;
     private final UserPointRepository userPointRepository;
 
+    /**
+     * 포인트 조회
+     */
     public UserPoint getUserPoint(long id) {
         UserPoint userPoint = userPointRepository.selectById(id);
 
@@ -25,6 +29,9 @@ public class PointService {
         return userPoint;
     }
 
+    /**
+     * 포인트 내역 조회
+     */
     public List<PointHistory> getUserPointHistories(long id) {
         List<PointHistory> pointHistories = pointHistoryRepository.searchAllUserPointHistories(id);
 
@@ -33,5 +40,29 @@ public class PointService {
         }
 
         return pointHistories;
+    }
+
+    /**
+     * 포인트 충전
+     */
+    public UserPoint chargeUserPoint(long id, long amount) {
+        validateChargePolicy(amount);
+
+        UserPoint currentPoint = userPointRepository.selectById(id);
+
+        long totalPoint = currentPoint.calculateChargePoint(amount);
+
+        // 히스토리 기록
+        pointHistoryRepository.insert(id, amount, TransactionType.CHARGE, System.currentTimeMillis());
+
+        // 포인트 업데이트
+        return userPointRepository.insertOrUpdate(id, totalPoint);
+    }
+
+    private void validateChargePolicy(long amount) {
+        // 정책: 포인트 충전은 한번에 10000원까지 가능
+        if (amount > 10000) {
+            throw new IllegalArgumentException("포인트 충전은 10000원 까지 가능합니다.");
+        }
     }
 }
