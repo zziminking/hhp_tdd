@@ -16,10 +16,22 @@ public class PointService {
     private final UserPointRepository userPointRepository;
 
     public UserPoint getUserPoint(long id) {
-        return userPointRepository.selectById(id);
+        UserPoint userPoint = userPointRepository.selectById(id);
+
+        if (userPoint == null) {
+            throw new IllegalArgumentException("사용자를 찾을 수 없습니다.");
+        }
+
+        return userPoint;
     }
 
     public List<PointHistory> getUserPointHistories(long id) {
-        return pointHistoryRepository.searchAllUserPointHistories(id);
+        List<PointHistory> pointHistories = pointHistoryRepository.searchAllUserPointHistories(id);
+
+        if (pointHistories.isEmpty()) {
+            throw new IllegalArgumentException("포인트 내역을 조회할 수 없습니다.");
+        }
+
+        return pointHistories;
     }
 }
