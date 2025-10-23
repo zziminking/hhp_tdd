@@ -42,7 +42,7 @@ public record UserPoint(
         }
 
         if (amount > this.point) {
-            throw new IllegalArgumentException(String.format("포인트 사용 금액은 현재 포인트를 초과할 수 없습니다. 포인트: {}", this.point));
+            throw new IllegalArgumentException("포인트 사용 금액은 현재 포인트를 초과할 수 없습니다.");
         }
 
         return this.point - amount;

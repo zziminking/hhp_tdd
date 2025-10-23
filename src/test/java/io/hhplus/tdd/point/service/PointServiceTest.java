@@ -343,7 +343,7 @@ class PointServiceTest {
         );
 
         // 메시지는 현재 구현의 문자열 포맷을 그대로 검증
-        assertEquals("포인트 사용 금액은 현재 포인트를 초과할 수 없습니다. 포인트: {}", exception.getMessage());
+        assertEquals("포인트 사용 금액은 현재 포인트를 초과할 수 없습니다.", exception.getMessage());
         verify(userPointRepository, times(1)).selectById(userId);
         verify(pointHistoryRepository, never()).insert(anyLong(), anyLong(), any(), anyLong());
         verify(userPointRepository, never()).insertOrUpdate(anyLong(), anyLong());
